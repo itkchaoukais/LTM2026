@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CongiPro — Gestion des Congés</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0f1117;
+  --surface:  #1a1d27;
+  --card:     #212434;
+  --border:   #2e3347;
+  --accent:   #5b7cfa;
+  --accent2:  #7c5bfa;
+  --green:    #34d399;
+  --yellow:   #fbbf24;
+  --red:      #f87171;
+  --text:     #e8eaf6;
+  --muted:    #8891b4;
+  --radius:   16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── Splash / Login ── */
+#splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 32px 24px;
+  background: radial-gradient(ellipse at 30% 20%, #1e2a5e 0%, var(--bg) 60%);
+}
+
+.brand {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.brand-icon {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 16px;
+  box-shadow: 0 12px 32px #5b7cfa40;
+}
+.brand h1 { font-family: 'Playfair Display', serif; font-size: 28px; }
+.brand p  { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  width: 100%;
+}
+.login-card h2 { font-size: 18px; margin-bottom: 6px; }
+.login-card p  { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 12px; font-weight: 600;
+  color: var(--muted);
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  padding: 13px 14px;
+  transition: border-color .2s;
+  outline: none;
+  -webkit-appearance: none;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--accent); }
+.form-group textarea { resize: vertical; min-height: 80px; }
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: none; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s, transform .1s;
+}
+.btn:active { transform: scale(.98); opacity: .9; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  box-shadow: 0 6px 20px #5b7cfa30;
+}
+.btn-success { background: var(--green);  color: #0f1117; }
+.btn-danger  { background: var(--red);    color: #fff; }
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text);
+}
+
+.error-msg {
+  background: #f871711a; border: 1px solid #f87171;
+  color: var(--red); border-radius: 10px;
+  padding: 10px 14px; font-size: 13px;
+  margin-bottom: 16px; display: none;
+}
+
+/* ── App Shell ── */
+#app { display: none; flex-direction: column; min-height: 100dvh; }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar-title { font-weight: 700; font-size: 17px; }
+.topbar-user  {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--muted);
+}
+.avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+}
+.logout-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 18px; padding: 4px;
+}
+
+/* Content */
+.content { flex: 1; padding: 0 0 90px; overflow-y: auto; }
+
+/* Tabs */
+.tab-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px; padding: 10px 4px;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-size: 10px; font-weight: 500;
+  transition: color .2s;
+}
+.tab-btn .tab-icon { font-size: 20px; }
+.tab-btn.active    { color: var(--accent); }
+
+/* Sections */
+.section { display: none; }
+.section.active { display: block; }
+
+/* Stats cards */
+.stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; padding: 20px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.stat-card .stat-val {
+  font-size: 28px; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.stat-card .stat-lbl { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+/* Greeting */
+.greeting {
+  padding: 24px 20px 8px;
+  background: linear-gradient(135deg, #1e2a5e 0%, transparent 100%);
+}
+.greeting .hi { font-size: 22px; font-weight: 700; }
+.greeting p   { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+/* Section header */
+.section-header {
+  padding: 20px 20px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.section-header h3 { font-size: 16px; font-weight: 700; }
+.badge {
+  background: var(--accent); color: #fff;
+  border-radius: 20px; padding: 2px 10px;
+  font-size: 11px; font-weight: 700;
+}
+
+/* Demande card */
+.demande-list { padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
+.demande-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.demande-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px;
+}
+.demande-card.en_attente::before { background: var(--yellow); }
+.demande-card.approuve::before   { background: var(--green); }
+.demande-card.refuse::before     { background: var(--red); }
+
+.demande-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.demande-type { font-weight: 600; font-size: 15px; }
+.chip {
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+.chip.en_attente { background: #fbbf2420; color: var(--yellow); }
+.chip.approuve   { background: #34d39920; color: var(--green); }
+.chip.refuse     { background: #f8717120; color: var(--red); }
+
+.demande-dates {
+  color: var(--muted); font-size: 13px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.demande-days {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--surface); padding: 3px 8px; border-radius: 8px;
+  font-size: 12px;
+}
+.demande-meta { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.demande-actions { display: flex; gap: 8px; margin-top: 12px; }
+.demande-actions .btn { width: auto; flex: 1; padding: 10px; font-size: 13px; border-radius: 10px; }
+
+/* Formulaire */
+.form-card {
+  margin: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.form-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+.upload-zone:hover  { border-color: var(--accent); }
+.upload-zone .icon  { font-size: 28px; margin-bottom: 8px; }
+.upload-zone p      { color: var(--muted); font-size: 13px; }
+.upload-zone .fname { color: var(--accent); font-size: 13px; margin-top: 6px; font-weight: 600; }
+
+/* Empty state */
+.empty {
+  text-align: center; padding: 60px 24px;
+  color: var(--muted);
+}
+.empty .icon { font-size: 40px; margin-bottom: 12px; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: #0009; backdrop-filter: blur(4px);
+  display: none; align-items: flex-end;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px;
+  width: 100%; max-height: 80dvh;
+  overflow-y: auto;
+}
+.modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+.modal-btns .btn { flex: 1; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 20px;
+  font-size: 14px; white-space: nowrap;
+  opacity: 0; transition: all .3s; z-index: 300;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error   { border-color: var(--red);   color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="splash">
+  <div class="brand">
+    <div class="brand-icon">🗓️</div>
+    <h1>CongiPro</h1>
+    <p>Gestion des congés d'entreprise</p>
+  </div>
+  <div class="login-card">
+    <h2>Connexion</h2>
+    <p>Entrez vos identifiants pour accéder à l'application</p>
+    <div id="login-error" class="error-msg"></div>
+    <div class="form-group">
+      <label>Adresse e-mail</label>
+      <input type="email" id="l-email" placeholder="prenom.nom@entreprise.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Mot de passe</label>
+      <input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">🔐 Se connecter</button>
+    <p style="text-align:center;color:var(--muted);font-size:12px;margin-top:16px">
+      Démo: employe@entreprise.com / Employe123!
+    </p>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-title">CongiPro</div>
+    <div class="topbar-user">
+      <div class="avatar" id="user-avatar">?</div>
+      <span id="user-name">—</span>
+      <button class="logout-btn" onclick="doLogout()" title="Déconnexion">⏻</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Tableau de bord -->
+    <div class="section active" id="sec-dashboard">
+      <div class="greeting">
+        <div class="hi" id="greet-name">Bonjour 👋</div>
+        <p id="greet-role">Chargement…</p>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="section-header">
+        <h3>Dernières demandes</h3>
+        <span class="badge" id="recent-badge">0</span>
+      </div>
+      <div class="demande-list" id="recent-list"></div>
+    </div>
+
+    <!-- Mes demandes / À traiter -->
+    <div class="section" id="sec-demandes">
+      <div class="section-header">
+        <h3 id="sec-dem-title">Mes demandes</h3>
+        <span class="badge" id="dem-badge">0</span>
+      </div>
+      <div class="demande-list" id="demande-list"></div>
+    </div>
+
+    <!-- Nouvelle demande -->
+    <div class="section" id="sec-new">
+      <div class="form-card">
+        <h3>📝 Nouvelle demande de congé</h3>
+        <div id="new-error" class="error-msg"></div>
+        <div class="form-group">
+          <label>Type de congé</label>
+          <select id="n-type">
+            <option value="Congé annuel">Congé annuel</option>
+            <option value="Congé maladie">Congé maladie</option>
+            <option value="Congé maternité/paternité">Congé maternité/paternité</option>
+            <option value="Congé sans solde">Congé sans solde</option>
+            <option value="Congé exceptionnel">Congé exceptionnel</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date de début</label>
+          <input type="date" id="n-debut">
+        </div>
+        <div class="form-group">
+          <label>Date de fin</label>
+          <input type="date" id="n-fin">
+        </div>
+        <div class="form-group">
+          <label>Motif</label>
+          <textarea id="n-motif" placeholder="Décrivez brièvement la raison de votre absence…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Pièce jointe (optionnel)</label>
+          <div class="upload-zone" onclick="document.getElementById('n-file').click()">
+            <div class="icon">📎</div>
+            <p>Appuyez pour joindre un document</p>
+            <p>(PDF, image, Word…)</p>
+            <div class="fname" id="n-fname"></div>
+          </div>
+          <input type="file" id="n-file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="handleFile(this)">
+        </div>
+        <button class="btn btn-primary" onclick="submitDemande()">📤 Soumettre la demande</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-sec="dashboard" onclick="showSection('dashboard',this)">
+      <span class="tab-icon">🏠</span>Accueil
+    </button>
+    <button class="tab-btn" data-sec="demandes" onclick="showSection('demandes',this)">
+      <span class="tab-icon">📋</span><span id="tab-dem-lbl">Demandes</span>
+    </button>
+    <button class="tab-btn" id="tab-new" data-sec="new" onclick="showSection('new',this)">
+      <span class="tab-icon">➕</span>Nouveau
+    </button>
+  </nav>
+</div><!-- /app -->
+
+<!-- Modal approbation -->
+<div class="modal-overlay" id="modal-approve">
+  <div class="modal">
+    <h3 id="modal-title">Traiter la demande</h3>
+    <input type="hidden" id="modal-id">
+    <input type="hidden" id="modal-statut">
+    <div class="form-group">
+      <label>Commentaire (optionnel)</label>
+      <textarea id="modal-comment" placeholder="Ajouter un commentaire…"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+      <button class="btn" id="modal-confirm-btn" onclick="confirmTraiter()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentUser = null;
+let fileData = null;
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pw    = document.getElementById('l-pw').value;
+  const err   = document.getElementById('login-error');
+  err.style.display = 'none';
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, mot_de_passe: pw })
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error; err.style.display = 'block'; return; }
+    currentUser = d;
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('app').style.display    = 'flex';
+    initApp();
+  } catch(e) { err.textContent = 'Erreur réseau'; err.style.display = 'block'; }
+}
+
+async function doLogout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.reload();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+
+function initApp() {
+  const initials = (currentUser.prenom[0] + currentUser.nom[0]).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent   = currentUser.prenom;
+  document.getElementById('greet-name').textContent  = `Bonjour, ${currentUser.prenom} 👋`;
+
+  const roleLabels = { employe:'Employé', superviseur:'Superviseur', admin:'Administrateur' };
+  document.getElementById('greet-role').textContent =
+    roleLabels[currentUser.role] + ' — ' + (currentUser.departement || '');
+
+  // Supervisor/admin: show "À traiter" tab; hide "Nouveau" tab
+  if (currentUser.role !== 'employe') {
+    document.getElementById('tab-dem-lbl').textContent  = 'À traiter';
+    document.getElementById('tab-new').style.display    = 'none';
+  }
+
+  loadStats();
+  loadDemandes();
+  loadRecentDemandes();
+}
+
+// ── Sections ─────────────────────────────────────────────────────────────
+
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'demandes') loadDemandes();
+  if (name === 'dashboard') { loadStats(); loadRecentDemandes(); }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+    const g = document.getElementById('stats-grid');
+    g.innerHTML = `
+      <div class="stat-card"><div class="stat-val">${d.total}</div><div class="stat-lbl">Total demandes</div></div>
+      <div class="stat-card"><div class="stat-val" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${d.en_attente}</div><div class="stat-lbl">En attente</div></div>
+      <div class="stat-card"><div class="stat-val" style="background:linear-gradient(135deg,#34d399,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${d.approuve}</div><div class="stat-lbl">Approuvées</div></div>
+      <div class="stat-card"><div class="stat-val" style="background:linear-gradient(135deg,#f87171,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${d.jours_pris||0}</div><div class="stat-lbl">Jours pris</div></div>
+    `;
+  } catch(e) {}
+}
+
+// ── Demandes ─────────────────────────────────────────────────────────────
+
+async function loadDemandes() {
+  const list  = document.getElementById('demande-list');
+  const badge = document.getElementById('dem-badge');
+  list.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>Chargement…</p></div>';
+  try {
+    const r  = await fetch('/api/demandes');
+    const ds = await r.json();
+    badge.textContent = ds.length;
+    document.getElementById('sec-dem-title').textContent =
+      currentUser.role === 'employe' ? 'Mes demandes' : 'Demandes à traiter';
+
+    if (!ds.length) {
+      list.innerHTML = '<div class="empty"><div class="icon">📭</div><p>Aucune demande</p></div>';
+      return;
+    }
+    list.innerHTML = ds.map(d => renderCard(d, true)).join('');
+  } catch(e) {}
+}
+
+async function loadRecentDemandes() {
+  const list  = document.getElementById('recent-list');
+  const badge = document.getElementById('recent-badge');
+  try {
+    const r  = await fetch('/api/demandes');
+    const ds = await r.json();
+    const recent = ds.slice(0, 3);
+    badge.textContent = recent.length;
+    list.innerHTML = recent.length
+      ? recent.map(d => renderCard(d, false)).join('')
+      : '<div class="empty"><div class="icon">📭</div><p>Aucune demande récente</p></div>';
+  } catch(e) {}
+}
+
+function renderCard(d, actions) {
+  const isSup = currentUser.role !== 'employe';
+  const who   = isSup
+    ? `<div class="demande-meta">👤 ${d.employe_nom || 'Employé'}</div>`
+    : '';
+  const doc   = d.document_nom
+    ? `<div class="demande-meta" style="margin-top:6px">📎 <a href="/api/demandes/${d.id}/document" style="color:var(--accent);text-decoration:none">${d.document_nom}</a></div>`
+    : '';
+  const cmt   = d.commentaire_superviseur
+    ? `<div class="demande-meta">💬 ${d.commentaire_superviseur}</div>`
+    : '';
+  const actBtns = (actions && isSup && d.statut === 'en_attente')
+    ? `<div class="demande-actions">
+         <button class="btn btn-success" onclick="openModal(${d.id},'approuve')">✅ Approuver</button>
+         <button class="btn btn-danger"  onclick="openModal(${d.id},'refuse')">❌ Refuser</button>
+       </div>`
+    : '';
+
+  return `
+    <div class="demande-card ${d.statut}">
+      <div class="demande-head">
+        <div class="demande-type">${d.type_conge}</div>
+        <span class="chip ${d.statut}">${labelStatut(d.statut)}</span>
+      </div>
+      <div class="demande-dates">
+        📅 ${fmt(d.date_debut)} → ${fmt(d.date_fin)}
+        <span class="demande-days">🌙 ${d.nb_jours}j</span>
+      </div>
+      ${d.motif ? `<div class="demande-meta" style="margin-top:6px">📝 ${d.motif}</div>` : ''}
+      ${who}${doc}${cmt}
+      ${actBtns}
+    </div>`;
+}
+
+function labelStatut(s) {
+  return { en_attente:'En attente', approuve:'Approuvée', refuse:'Refusée' }[s] || s;
+}
+
+function fmt(d) {
+  if (!d) return '—';
+  const [y,m,j] = d.split('-');
+  return `${j}/${m}/${y}`;
+}
+
+// ── Nouvelle demande ──────────────────────────────────────────────────────
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('n-fname').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => { fileData = { data: e.target.result, nom: file.name, type: file.type }; };
+  reader.readAsDataURL(file);
+}
+
+async function submitDemande() {
+  const err = document.getElementById('new-error');
+  err.style.display = 'none';
+  const body = {
+    type_conge:    document.getElementById('n-type').value,
+    date_debut:    document.getElementById('n-debut').value,
+    date_fin:      document.getElementById('n-fin').value,
+    motif:         document.getElementById('n-motif').value,
+    document_nom:  fileData?.nom,
+    document_type: fileData?.type,
+    document_data: fileData?.data
+  };
+  if (!body.date_debut || !body.date_fin) {
+    err.textContent = 'Veuillez saisir les dates.'; err.style.display = 'block'; return;
+  }
+  if (body.date_fin < body.date_debut) {
+    err.textContent = 'La date de fin doit être après la date de début.'; err.style.display = 'block'; return;
+  }
+  try {
+    const r = await fetch('/api/demandes', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error; err.style.display = 'block'; return; }
+    showToast('✅ Demande soumise avec succès', 'success');
+    // Reset
+    document.getElementById('n-motif').value = '';
+    document.getElementById('n-debut').value = '';
+    document.getElementById('n-fin').value   = '';
+    document.getElementById('n-fname').textContent = '';
+    fileData = null;
+    showSection('dashboard', document.querySelector('[data-sec="dashboard"]'));
+  } catch(e) { err.textContent = 'Erreur réseau'; err.style.display = 'block'; }
+}
+
+// ── Modal traitement ──────────────────────────────────────────────────────
+
+function openModal(id, statut) {
+  document.getElementById('modal-id').value     = id;
+  document.getElementById('modal-statut').value = statut;
+  document.getElementById('modal-comment').value = '';
+  const btn = document.getElementById('modal-confirm-btn');
+  if (statut === 'approuve') {
+    document.getElementById('modal-title').textContent = '✅ Approuver la demande';
+    btn.className = 'btn btn-success'; btn.textContent = 'Approuver';
+  } else {
+    document.getElementById('modal-title').textContent = '❌ Refuser la demande';
+    btn.className = 'btn btn-danger'; btn.textContent = 'Refuser';
+  }
+  document.getElementById('modal-approve').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-approve').classList.remove('open');
+}
+
+async function confirmTraiter() {
+  const id      = document.getElementById('modal-id').value;
+  const statut  = document.getElementById('modal-statut').value;
+  const comment = document.getElementById('modal-comment').value;
+  try {
+    const r = await fetch(`/api/demandes/${id}/traiter`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ statut, commentaire: comment })
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast('❌ ' + d.error, 'error'); return; }
+    showToast(statut === 'approuve' ? '✅ Demande approuvée' : '❌ Demande refusée',
+              statut === 'approuve' ? 'success' : 'error');
+    closeModal();
+    loadDemandes();
+    loadStats();
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = `toast show ${type}`;
+  setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+// ── Enter sur login ───────────────────────────────────────────────────────
+document.getElementById('l-pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>
